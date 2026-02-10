@@ -1,3 +1,4 @@
+---
 - name: Configure Frontend (Amazon Linux)
   hosts: frontend
   become: yes
@@ -7,15 +8,38 @@
       yum:
         update_cache: yes
 
-    - name: Install nginx using amazon-linux-extras
-      shell: |
-        amazon-linux-extras enable nginx1
-        yum install -y nginx
-      args:
-        warn: false
+    - name: Enable nginx repo
+      shell: amazon-linux-extras enable nginx1
+      ignore_errors: yes
+
+    - name: Install nginx
+      yum:
+        name: nginx
+        state: present
 
     - name: Start and enable nginx
       service:
         name: nginx
+        state: started
+        enabled: yes
+
+
+- name: Configure Backend (Ubuntu)
+  hosts: backend
+  become: yes
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install apache2
+      apt:
+        name: apache2
+        state: present
+
+    - name: Start and enable apache2
+      service:
+        name: apache2
         state: started
         enabled: yes
