@@ -2,9 +2,7 @@ pipeline {
     agent any
 
     environment {
-        TF_DIR = "terraform"
-        ANSIBLE_DIR = "ansible"
-        AWS_REGION = "us-east-1"
+        AWS_DEFAULT_REGION = 'us-east-1'
     }
 
     stages {
@@ -17,7 +15,7 @@ pipeline {
 
         stage('Terraform Init') {
             steps {
-                dir("${TF_DIR}") {
+                dir('terraform') {
                     withCredentials([usernamePassword(
                         credentialsId: 'aws-credentials',
                         usernameVariable: 'AWS_ACCESS_KEY_ID',
@@ -26,7 +24,7 @@ pipeline {
                         sh '''
                         export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
                         export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-                        export AWS_DEFAULT_REGION=${AWS_REGION}
+                        export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
                         terraform init
                         '''
                     }
@@ -36,7 +34,7 @@ pipeline {
 
         stage('Terraform Apply') {
             steps {
-                dir("${TF_DIR}") {
+                dir('terraform') {
                     withCredentials([usernamePassword(
                         credentialsId: 'aws-credentials',
                         usernameVariable: 'AWS_ACCESS_KEY_ID',
@@ -45,7 +43,7 @@ pipeline {
                         sh '''
                         export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
                         export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-                        export AWS_DEFAULT_REGION=${AWS_REGION}
+                        export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
                         terraform apply -auto-approve
                         '''
                     }
@@ -55,10 +53,12 @@ pipeline {
 
         stage('Generate Inventory') {
             steps {
-                dir("${TF_DIR}") {
+                dir('terraform') {
                     sh '''
                     FRONTEND_IP=$(terraform output -raw frontend_public_ip)
                     BACKEND_IP=$(terraform output -raw backend_public_ip)
+
+                    mkdir -p ../ansible
 
                     echo "[frontend]" > ../ansible/inventory.ini
                     echo "c8.local ansible_host=$FRONTEND_IP ansible_user=ec2-user" >> ../ansible/inventory.ini
@@ -75,7 +75,9 @@ pipeline {
                 withCredentials([file(credentialsId: 'ssh-key-file', variable: 'SSH_KEY')]) {
                     sh '''
                     chmod 400 $SSH_KEY
-                    ansible-playbook -i ansible/inventory.ini ansible/playbook.yml \
+                    ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook \
+                    -i ansible/inventory.ini \
+                    ansible/playbook.yml \
                     --private-key $SSH_KEY
                     '''
                 }
@@ -85,7 +87,7 @@ pipeline {
 
     post {
         success {
-            echo "Deployment Successful 🚀"
+            echo "Pipeline Completed Successfully ✅"
         }
         failure {
             echo "Pipeline Failed ❌"
