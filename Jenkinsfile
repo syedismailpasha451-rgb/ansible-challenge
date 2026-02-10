@@ -2,18 +2,15 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION = "us-east-1"
         TF_DIR = "terraform"
         ANSIBLE_DIR = "ansible"
-        SSH_KEY = credentials('ec2-ssh-key')   // Jenkins stored SSH key
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/syedismailpasha451-rgb/ansible-challenge.git'
+                checkout scm
             }
         }
 
@@ -21,14 +18,6 @@ pipeline {
             steps {
                 dir("${TF_DIR}") {
                     sh 'terraform init'
-                }
-            }
-        }
-
-        stage('Terraform Validate') {
-            steps {
-                dir("${TF_DIR}") {
-                    sh 'terraform validate'
                 }
             }
         }
@@ -41,7 +30,7 @@ pipeline {
             }
         }
 
-        stage('Generate Ansible Inventory') {
+        stage('Generate Inventory') {
             steps {
                 dir("${TF_DIR}") {
                     sh '''
@@ -50,7 +39,6 @@ pipeline {
 
                     echo "[frontend]" > ../ansible/inventory.ini
                     echo "c8.local ansible_host=$FRONTEND_IP ansible_user=ec2-user" >> ../ansible/inventory.ini
-
                     echo "" >> ../ansible/inventory.ini
                     echo "[backend]" >> ../ansible/inventory.ini
                     echo "u21.local ansible_host=$BACKEND_IP ansible_user=ubuntu" >> ../ansible/inventory.ini
@@ -59,12 +47,13 @@ pipeline {
             }
         }
 
-        stage('Run Ansible Playbook') {
+        stage('Run Ansible') {
             steps {
-                dir("${ANSIBLE_DIR}") {
+                withCredentials([file(credentialsId: 'ssh-key-file', variable: 'SSH_KEY')]) {
                     sh '''
-                    ansible-playbook -i inventory.ini playbook.yml \
-                    --private-key ${SSH_KEY}
+                    chmod 400 $SSH_KEY
+                    ansible-playbook -i ansible/inventory.ini ansible/playbook.yml \
+                    --private-key $SSH_KEY
                     '''
                 }
             }
@@ -73,10 +62,10 @@ pipeline {
 
     post {
         success {
-            echo "Infrastructure deployed and configured successfully!"
+            echo "Deployment Successful 🚀"
         }
         failure {
-            echo "Pipeline failed. Check logs."
+            echo "Pipeline Failed ❌"
         }
     }
 }
