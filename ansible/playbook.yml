@@ -1,6 +1,6 @@
 ---
 ##############################
-# FRONTEND - Amazon Linux
+# FRONTEND - Amazon Linux 2023
 ##############################
 
 - name: Configure Frontend
@@ -20,15 +20,8 @@
       command: setenforce 0
       ignore_errors: yes
 
-    - name: Stop firewalld if running
-      service:
-        name: firewalld
-        state: stopped
-        enabled: no
-      ignore_errors: yes
-
-    - name: Install Nginx
-      yum:
+    - name: Install Nginx (Amazon Linux 2023 uses dnf)
+      dnf:
         name: nginx
         state: present
 
@@ -38,7 +31,7 @@
         state: started
         enabled: yes
 
-    - name: Configure Reverse Proxy to Backend
+    - name: Configure Reverse Proxy
       copy:
         dest: /etc/nginx/conf.d/reverse.conf
         content: |
@@ -65,18 +58,11 @@
 
   tasks:
 
-    - name: Stop firewalld if exists
-      service:
-        name: firewalld
-        state: stopped
-        enabled: no
-      ignore_errors: yes
-
     - name: Install Netdata
       shell: |
         bash <(curl -Ss https://my-netdata.io/kickstart.sh) --dont-wait
 
-    - name: Ensure Netdata is running
+    - name: Ensure Netdata running
       service:
         name: netdata
         state: started
