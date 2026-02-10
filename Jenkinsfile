@@ -24,7 +24,6 @@ pipeline {
                         sh '''
                         export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
                         export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-                        export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
                         terraform init
                         '''
                     }
@@ -43,7 +42,6 @@ pipeline {
                         sh '''
                         export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
                         export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-                        export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
                         terraform apply -auto-approve
                         '''
                     }
@@ -72,13 +70,10 @@ pipeline {
 
         stage('Run Ansible') {
             steps {
-                withCredentials([file(credentialsId: 'ssh-key-file', variable: 'SSH_KEY')]) {
+                withCredentials([file(credentialsId: 'ssh-key', variable: 'SSH_KEY')]) {
                     sh '''
                     chmod 400 $SSH_KEY
-                    ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook \
-                    -i ansible/inventory.ini \
-                    ansible/playbook.yml \
-                    --private-key $SSH_KEY
+                    ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i ansible/inventory.ini ansible/playbook.yml --private-key $SSH_KEY
                     '''
                 }
             }
@@ -87,11 +82,10 @@ pipeline {
 
     post {
         success {
-            echo "Pipeline Completed Successfully ✅"
+            echo 'Pipeline Success ✅'
         }
         failure {
-            echo "Pipeline Failed ❌"
+            echo 'Pipeline Failed ❌'
         }
     }
 }
-
