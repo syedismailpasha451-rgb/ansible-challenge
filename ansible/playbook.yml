@@ -1,44 +1,44 @@
+---
 - name: Configure Frontend
   hosts: frontend
   become: yes
 
   tasks:
 
-    - name: Disable SELinux permanently
-      replace:
-        path: /etc/selinux/config
-        regexp: '^SELINUX=.*'
-        replace: 'SELINUX=disabled'
-      ignore_errors: yes
-
-    - name: Disable SELinux immediately
-      command: setenforce 0
-      ignore_errors: yes
-
     - name: Install Nginx
-      dnf:
+      package:
         name: nginx
         state: present
-        use_backend: dnf5
 
-    - name: Start and Enable Nginx
+    - name: Start Nginx
       service:
         name: nginx
         state: started
         enabled: yes
 
-    - name: Configure Reverse Proxy
-      copy:
-        dest: /etc/nginx/conf.d/reverse.conf
-        content: |
-          server {
-              listen 80;
-              location / {
-                  proxy_pass http://{{ hostvars['u21.local']['ansible_host'] }}:19999;
-              }
-          }
+    - name: Install Netdata
+      shell: |
+        bash <(curl -Ss https://my-netdata.io/kickstart.sh) --non-interactive
+      args:
+        executable: /bin/bash
 
-    - name: Restart Nginx
+- name: Configure Backend
+  hosts: backend
+  become: yes
+
+  tasks:
+
+    - name: Update apt
+      apt:
+        update_cache: yes
+
+    - name: Install Apache
+      apt:
+        name: apache2
+        state: present
+
+    - name: Start Apache
       service:
-        name: nginx
-        state: restarted
+        name: apache2
+        state: started
+        enabled: yes
