@@ -1,0 +1,60 @@
+---
+- name: Configure Frontend
+  hosts: frontend
+  become: yes
+  tasks:
+    - name: Disable SELinux
+      selinux:
+        state: disabled
+
+    - name: Stop firewalld
+      service:
+        name: firewalld
+        state: stopped
+        enabled: no
+
+    - name: Install Nginx
+      package:
+        name: nginx
+        state: present
+
+    - name: Configure Nginx Reverse Proxy
+      copy:
+        dest: /etc/nginx/conf.d/reverse.conf
+        content: |
+          server {
+              listen 80;
+              location / {
+                  proxy_pass http://{{ hostvars['u21.local']['ansible_host'] }}:19999;
+              }
+          }
+
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted
+
+
+- name: Configure Backend
+  hosts: backend
+  become: yes
+  tasks:
+    - name: Disable SELinux
+      selinux:
+        state: disabled
+
+    - name: Stop firewalld
+      service:
+        name: firewalld
+        state: stopped
+        enabled: no
+
+    - name: Install Netdata
+      shell: |
+        bash <(curl -Ss https://my-netdata.io/kickstart.sh) --dont-wait
+
+    - name: Ensure Netdata running on 19999
+      service:
+        name: netdata
+        state: started
+        enabled: yes
