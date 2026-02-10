@@ -4,40 +4,39 @@
   become: yes
 
   tasks:
+    - name: Update yum cache
+      yum:
+        name: "*"
+        state: latest
+        update_cache: yes
 
-    - name: Install Nginx
-      package:
+    - name: Install nginx
+      yum:
         name: nginx
         state: present
 
-    - name: Start Nginx
+    - name: Start nginx
       service:
         name: nginx
         state: started
         enabled: yes
 
-    - name: Install Netdata
-      shell: |
-        bash <(curl -Ss https://my-netdata.io/kickstart.sh) --non-interactive
-      args:
-        executable: /bin/bash
 
 - name: Configure Backend
   hosts: backend
   become: yes
 
   tasks:
-
-    - name: Update apt
+    - name: Update apt cache
       apt:
         update_cache: yes
 
-    - name: Install Apache
+    - name: Install apache2
       apt:
         name: apache2
         state: present
 
-    - name: Start Apache
+    - name: Start apache2
       service:
         name: apache2
         state: started
