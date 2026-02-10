@@ -1,28 +1,22 @@
 ---
-- name: Configure Frontend
+- name: Configure Frontend (Amazon Linux)
   hosts: frontend
   become: yes
 
   tasks:
-    - name: Update yum cache
-      yum:
-        name: "*"
-        state: latest
-        update_cache: yes
-
-    - name: Install nginx
-      yum:
+    - name: Install nginx (Amazon Linux 2023 / 2)
+      package:
         name: nginx
         state: present
 
-    - name: Start nginx
+    - name: Start and enable nginx
       service:
         name: nginx
         state: started
         enabled: yes
 
 
-- name: Configure Backend
+- name: Configure Backend (Ubuntu)
   hosts: backend
   become: yes
 
@@ -36,7 +30,7 @@
         name: apache2
         state: present
 
-    - name: Start apache2
+    - name: Start and enable apache2
       service:
         name: apache2
         state: started
